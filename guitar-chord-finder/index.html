@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎸 Guitar Chord Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Code+Pro:wght@400;600&family=Noto+Sans+Myanmar:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111114;
+    --card: #18181d;
+    --border: #2a2a35;
+    --accent: #e8c547;
+    --accent2: #c8965a;
+    --text: #e8e6e0;
+    --muted: #6b6b78;
+    --success: #4ade80;
+    --error: #f87171;
+    --glow: rgba(232,197,71,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans Myanmar', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:0;
+    opacity:0.4;
+  }
+
+  /* Ambient light blobs */
+  .ambient {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .amb-1 { width:500px; height:500px; background: rgba(232,197,71,0.06); top:-100px; right:-100px; }
+  .amb-2 { width:400px; height:400px; background: rgba(200,150,90,0.05); bottom:-80px; left:-80px; }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Header */
+  header {
+    padding: 60px 0 48px;
+    text-align: center;
+  }
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .logo-icon {
+    font-size: 2.4rem;
+    animation: strum 3s ease-in-out infinite;
+  }
+
+  @keyframes strum {
+    0%,100% { transform: rotate(-5deg) scale(1); }
+    50% { transform: rotate(5deg) scale(1.08); }
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%, #e8c547 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 36px;
+  }
+  .divider::before, .divider::after {
+    content:'';
+    flex:1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+  .divider span {
+    color: var(--accent);
+    font-size: 1.1rem;
+    opacity: 0.7;
+  }
+
+  /* Form Card */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+    margin-bottom: 32px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  @media(max-width:520px) { .form-row { grid-template-columns: 1fr; } }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  label {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Noto Sans Myanmar', sans-serif;
+    font-size: 0.95rem;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  input::placeholder { color: var(--muted); opacity: 0.6; }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    border: none;
+    border-radius: 10px;
+    color: #0a0a0b;
+    font-family: 'Noto Sans Myanmar', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    letter-spacing: 0.03em;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  }
+  .btn:hover:not(:disabled) { opacity:0.92; box-shadow: 0 6px 24px rgba(232,197,71,0.3); }
+  .btn:active:not(:disabled) { transform: scale(0.98); }
+  .btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+  .btn-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  /* Spinner */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: #0a0a0b;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading .spinner { display: block; }
+  .loading .btn-text { opacity: 0.7; }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-top: 16px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .status-bar.show { opacity: 1; }
+  .status-bar.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: var(--error); }
+  .status-bar.info { background: rgba(232,197,71,0.08); border: 1px solid rgba(232,197,71,0.2); color: var(--accent); }
+
+  /* Result section */
+  #result-section { display: none; }
+  #result-section.show { display: block; animation: fadeUp 0.5s ease; }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(20px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .result-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .badge-success { background: rgba(74,222,128,0.12); color: var(--success); border: 1px solid rgba(74,222,128,0.25); }
+
+  .copy-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    transition: all 0.2s;
+    font-family: 'Noto Sans Myanmar', sans-serif;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+  /* Markdown result render */
+  .result-body {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+    line-height: 1.8;
+    font-size: 0.95rem;
+  }
+
+  .result-body h1 { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--accent); margin-bottom:20px; font-weight:700; }
+  .result-body h2 { font-size:1rem; color:var(--accent2); margin: 24px 0 12px; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .result-body p { margin-bottom:10px; color: var(--text); }
+  .result-body ul { list-style:none; padding:0; margin-bottom:12px; }
+  .result-body li { padding: 6px 0 6px 0; color:var(--text); display:flex; align-items:flex-start; gap:8px; }
+  .result-body li::before { content:'♩'; color:var(--accent); font-size:0.8rem; margin-top:3px; flex-shrink:0; }
+  .result-body strong { color: var(--accent); font-weight:700; }
+
+  /* Code blocks for chord+lyrics */
+  .result-body pre {
+    background: #0d0d0f;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: #c8d0e8;
+    white-space: pre;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .result-body code:not(pre code) {
+    background: rgba(232,197,71,0.1);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 0.85em;
+  }
+  .result-body pre code { background:none; color:inherit; padding:0; }
+
+  /* Strumming pattern highlight */
+  .strum-row { letter-spacing: 0.12em; font-size:1.1em; color: var(--accent2); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 40px 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+  }
+  footer a { color: var(--accent); text-decoration: none; opacity: 0.7; }
+  footer a:hover { opacity: 1; }
+
+  /* Examples chips */
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .ex-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    align-self: center;
+  }
+  .chip {
+    padding: 5px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--glow); }
+</style>
+</head>
+<body>
+
+<div class="ambient amb-1"></div>
+<div class="ambient amb-2"></div>
+
+<div class="container">
+
+  <header>
+    <div class="logo-line">
+      <span class="logo-icon">🎸</span>
+      <h1>Guitar Chord Finder</h1>
+    </div>
+    <p class="tagline">Beginner-Friendly · Open Chords Only · Burmese Output</p>
+  </header>
+
+  <div class="divider"><span>♩</span></div>
+
+  <div class="form-card">
+    <div class="form-row">
+      <div class="field">
+        <label>သီချင်းနာမည်</label>
+        <input id="song" type="text" placeholder="e.g. ချစ်ကြောင်းပြောမည်" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>အဆိုတော်</label>
+        <input id="artist" type="text" placeholder="e.g. Sai Sai Kham Leng" autocomplete="off">
+      </div>
+    </div>
+
+    <button class="btn" id="search-btn" onclick="searchChords()">
+      <span class="btn-inner">
+        <span class="spinner"></span>
+        <span class="btn-text">Chord ရှာမည် →</span>
+      </span>
+    </button>
+
+    <div class="status-bar" id="status"></div>
+
+    <div class="examples">
+      <span class="ex-label">ဥပမာ —</span>
+      <span class="chip" onclick="fillExample('ချစ်ကြောင်းပြောမည်','Sai Sai Kham Leng')">ချစ်ကြောင်းပြောမည်</span>
+      <span class="chip" onclick="fillExample('နှလုံးသားနဲ့ပြောနေတဲ့','L Zaw')">နှလုံးသားနဲ့ပြောနေတဲ့</span>
+      <span class="chip" onclick="fillExample('Beautiful Girl','Sean Kingston')">Beautiful Girl</span>
+      <span class="chip" onclick="fillExample('Hotel California','Eagles')">Hotel California</span>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="result-section">
+    <div class="result-header">
+      <div class="result-meta">
+        <span class="badge badge-success">✓ Chord Sheet Ready</span>
+      </div>
+      <button class="copy-btn" id="copy-btn" onclick="copyResult()">📋 ကူးယူမည်</button>
+    </div>
+    <div class="result-body" id="result-body"></div>
+  </div>
+
+  <footer>
+    Powered by <a href="https://n8n.srv1695682.hstgr.cloud" target="_blank">n8n</a> · Gemini 2.5 Flash · myanmarchords.com
+  </footer>
+
+</div>
+
+<script>
+// ---- CONFIG ----
+const WEBHOOK_URL = 'https://n8n.srv1695682.hstgr.cloud/webhook/guitar-chords';
+let rawMarkdown = '';
+
+function fillExample(song, artist) {
+  document.getElementById('song').value = song;
+  document.getElementById('artist').value = artist;
+}
+
+function setStatus(msg, type='info') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-bar show ' + type;
+}
+
+function clearStatus() {
+  document.getElementById('status').className = 'status-bar';
+}
+
+async function searchChords() {
+  const song = document.getElementById('song').value.trim();
+  const artist = document.getElementById('artist').value.trim();
+
+  if (!song) { setStatus('⚠ သီချင်းနာမည် ထည့်သွင်းပါ', 'error'); return; }
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  document.getElementById('result-section').classList.remove('show');
+  setStatus('🔍 myanmarchords.com မှာ ရှာဖွေနေသည်...', 'info');
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ song_title: song, artist_name: artist })
+    });
+
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'Unknown error');
+
+    rawMarkdown = data.result || '';
+    renderResult(rawMarkdown);
+    clearStatus();
+    document.getElementById('result-section').classList.add('show');
+    document.getElementById('result-section').scrollIntoView({ behavior:'smooth', block:'start' });
+
+  } catch(e) {
+    setStatus('❌ ' + (e.message || 'Error'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+// Simple markdown → HTML renderer
+function renderResult(md) {
+  let html = md
+    // Escape HTML first
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // Code blocks (must come first)
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) =>
+      `<pre><code>${code.trim()}</code></pre>`)
+    // H1
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // H2
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Bullet lists
+    .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+    // Wrap consecutive li's in ul
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    // Paragraphs (lines not already in tags)
+    .split('\n')
+    .map(line => {
+      line = line.trim();
+      if (!line) return '';
+      if (line.startsWith('<')) return line;
+      // Highlight strumming arrows
+      if (line.match(/[↓↑]/)) return `<p class="strum-row">${line}</p>`;
+      return `<p>${line}</p>`;
+    })
+    .join('\n');
+
+  document.getElementById('result-body').innerHTML = html;
+}
+
+async function copyResult() {
+  if (!rawMarkdown) return;
+  try {
+    await navigator.clipboard.writeText(rawMarkdown);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ ကူးယူပြီး!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 ကူးယူမည်'; btn.classList.remove('copied'); }, 2000);
+  } catch(e) {}
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchChords();
+});
+</script>
+</body>
+</html>
