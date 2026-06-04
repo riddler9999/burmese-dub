@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CELE · Reaction Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --border: #1f1f1f;
+    --accent: #e8ff47;
+    --accent2: #ff4d6d;
+    --text: #f0f0f0;
+    --muted: #555;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-x: hidden;
+  }
+
+  /* Noise grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: 4px;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding-bottom: 14px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 32px;
+    position: relative;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  input[type="text"], input[type="url"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  .btn {
+    width: 100%;
+    margin-top: 8px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    padding: 14px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn .btn-text { transition: opacity 0.2s; }
+  .btn .btn-spinner { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; }
+  .btn.loading .btn-text { opacity: 0; }
+  .btn.loading .btn-spinner { display: flex; }
+
+  /* Spinner */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid #00000033;
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Status */
+  .status {
+    margin-top: 20px;
+    padding: 14px 16px;
+    border-radius: 2px;
+    font-size: 13px;
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .status.success { background: #0d1f00; border: 1px solid #2a4a00; color: #a8ff47; display: flex; }
+  .status.error   { background: #1f0009; border: 1px solid #4a0015; color: #ff6b6b; display: flex; }
+  .status.info    { background: #0d0d00; border: 1px solid #3a3a00; color: var(--accent); display: flex; }
+
+  .status-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .status-msg { line-height: 1.5; }
+
+  /* Clips counter */
+  .clips-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .clips-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">CELE</div>
+    <div class="logo-sub">Reaction Pipeline</div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>Main Video URL</label>
+      <input type="url" id="video_url" placeholder="https://example.com/video.mp4" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>Celebrity Name</label>
+      <input type="text" id="celebrity_name" placeholder="Selena Gomez" autocomplete="off">
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitJob()">
+      <span class="btn-text">GENERATE</span>
+      <span class="btn-spinner"><span class="spinner"></span></span>
+    </button>
+
+    <div class="status" id="status">
+      <span class="status-icon" id="statusIcon"></span>
+      <span class="status-msg" id="statusMsg"></span>
+    </div>
+
+    <div class="clips-info">
+      <span>Pipeline Status</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="clips-dot"></div>
+        <span>Active</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">riddler9999 · n8n automation</div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://n8n.srv1695682.hstgr.cloud/webhook/celebrity-reaction';
+
+async function submitJob() {
+  const video_url = document.getElementById('video_url').value.trim();
+  const celebrity_name = document.getElementById('celebrity_name').value.trim();
+  const btn = document.getElementById('submitBtn');
+
+  if (!video_url) { showStatus('error', '⚠', 'Video URL ထည့်ပါ'); return; }
+  if (!celebrity_name) { showStatus('error', '⚠', 'Celebrity Name ထည့်ပါ'); return; }
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+  showStatus('info', '⟳', 'Pipeline ကို ပို့နေတယ်...');
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_url, celebrity_name })
+    });
+
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showStatus('success', '✓', 'Processing စပြီ! Telegram မှာ result ကြည့်ပါ 🎬');
+      document.getElementById('video_url').value = '';
+      document.getElementById('celebrity_name').value = '';
+    } else {
+      showStatus('error', '✕', 'Server error: ' + res.status);
+    }
+  } catch (err) {
+    showStatus('error', '✕', 'Connection error — VPS running ဟုတ်မဟုတ် စစ်ပါ');
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function showStatus(type, icon, msg) {
+  const el = document.getElementById('status');
+  el.className = 'status ' + type;
+  document.getElementById('statusIcon').textContent = icon;
+  document.getElementById('statusMsg').textContent = msg;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitJob();
+});
+</script>
+
+</body>
+</html>
